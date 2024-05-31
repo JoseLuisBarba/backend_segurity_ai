@@ -10,7 +10,7 @@ from app.core.config import settings
 
 
 password_context = CryptContext(
-    schemes=["argon2"], 
+    schemes=["bcrypt"], 
     deprecated="auto"
 )
 
