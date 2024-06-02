@@ -7,13 +7,18 @@ from app.core.config import settings
 from app.model.orm import User
 from app.dto.user import UserCreate, UserUpdate
 
-
 from datetime import datetime, timezone
 from datetime import date
 
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def make_naive(dt):
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 async def create(
         *, session: AsyncSession, user_create: UserCreate
@@ -30,10 +35,9 @@ async def create(
             birthdate= user_create.birthdate,
             img= None, 
             is_active= True,
-            createdAt= datetime.now(timezone.utc),
+            createdAt= make_naive(datetime.now(timezone.utc)),
             updatedAt = None,
             deletedAt= None
-              
         )
         session.add(user)
         await session.commit()
@@ -68,7 +72,7 @@ async def authenticate(
 
 async def update_user(
         *, session: AsyncSession, db_user: User, user_in: UserUpdate
-    ) -> User | None:
+    ) -> Optional[User]:  # Changed this line
     try:
         pass
     except Exception as err:
@@ -95,9 +99,3 @@ async def init_db(
         )
         user: User = await create(session=session, user_create=user_in)
 
-
-
-
-    
-      
-    
