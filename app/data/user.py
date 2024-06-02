@@ -70,14 +70,7 @@ async def authenticate(
     return db_user
         
 
-async def update_user(
-        *, session: AsyncSession, db_user: User, user_in: UserUpdate
-    ) -> Optional[User]:  # Changed this line
-    try:
-        pass
-    except Exception as err:
-        await session.rollback()
-        raise err  
+ 
 
 async def init_db(
         *, session: AsyncSession
@@ -99,3 +92,28 @@ async def init_db(
         )
         user: User = await create(session=session, user_create=user_in)
 
+
+async def update_user(
+        *, session: AsyncSession, db_user: User ,user_in: UserUpdate
+    ):
+    user_data = user_in.model_dump(exclude_unset=True)
+    extra_data = {}
+    if "password" in user_data:
+        password = user_data["password"]
+        hashed_password = get_password_hash(password=password)
+        extra_data["hashed_password"] = hashed_password
+    #db_user <- actualiza los campos con user_data y extra_data
+    for field, value in user_data.items():
+        setattr(db_user, field, value)
+    
+    for field, value in extra_data.items():
+        setattr(db_user, field, value)
+
+    session.add(db_user)
+    await session.commit()
+    await session.refresh(db_user)
+    return db_user
+
+    
+      
+    

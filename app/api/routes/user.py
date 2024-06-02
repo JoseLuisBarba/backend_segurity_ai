@@ -10,7 +10,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.sql import select, update, func
 
 
-from app.data.user import get_user_by_email, create
+from app.data.user import get_user_by_email, create, update_user
 from app.api.deps import (
     CurrentUser, SessionDep, get_current_active_superuser
 )
@@ -19,7 +19,7 @@ from app.core.config import settings
 from app.core.segurity import get_password_hash
 from app.dto.utils import Message
 from app.dto.auth import NewPassword, Token
-from app.dto.user import UserPublic, UsersPublic, UserCreate, UserRegister
+from app.dto.user import UserPublic, UsersPublic, UserCreate, UserRegister, UserUpdate
 from app.model.orm import User
 from app.helpers.user import map_create_no_superuser
 
@@ -32,7 +32,7 @@ router = APIRouter()
     dependencies=[Depends(get_current_active_superuser)],
     response_model=UsersPublic,
 )
-async def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+async def sweb_read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
     """
     Retrieve users.
     """
@@ -60,7 +60,7 @@ async def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> An
 @router.post(
     "/create", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
 )
-async def create_user(*, session: SessionDep, user_in: UserCreate) -> Optional[User]:
+async def sweb_create_user(*, session: SessionDep, user_in: UserCreate) -> Optional[User]:
     user: User = await get_user_by_email(
         session= session, email= user_in.email
     )
@@ -81,14 +81,14 @@ async def create_user(*, session: SessionDep, user_in: UserCreate) -> Optional[U
     
 
 @router.get("/me", response_model= UserPublic)
-async def read_user_me(current_user: CurrentUser) -> UserPublic:
+async def sweb_read_user_me(current_user: CurrentUser) -> UserPublic:
     """ Get current user.
     """
     return current_user
 
 
 @router.post("/signup", response_model=UserPublic)
-async def register_user(
+async def sweb_register_user(
         session: SessionDep, user_in: UserRegister
     ) -> UserPublic:
     try:
@@ -120,7 +120,7 @@ async def register_user(
         )
     
 @router.get("/{user_id}", response_model=UserPublic)
-async def read_user_by_id(
+async def sweb_read_user_by_id(
        user_id: int ,session: SessionDep, current_user: CurrentUser
     ) -> Any:
     """Get a specific user by id
@@ -140,3 +140,47 @@ async def read_user_by_id(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=e,
         )
+    
+
+@router.patch(
+    "/{user_id}", dependencies=[Depends(get_current_active_superuser)],
+    response_model=UserPublic
+)
+async def sweb_update_user(*, session: SessionDep, user_id: int, user_in: UserUpdate) -> Any:
+    """update user
+    """
+    try:
+        db_user: User = await session.get(User, user_id)
+        if not db_user:
+            raise HTTPException(
+                status_code= status.HTTP_404_NOT_FOUND,
+                detail="User with this email already exists"
+            )
+        
+        if user_in.email:
+            existing_user: User = await get_user_by_email(session=session, email=user_in.email)
+            if existing_user and existing_user.id != user_id:
+                raise HTTPException(
+                    status_code= status.HTTP_409_CONFLICT,
+                    detail="User with this email already exists"
+                )
+        db_user: User = await update_user(session=session, db_user=db_user, user_in=user_in)
+
+        if not db_user:
+            raise HTTPException(
+                status_code= status.HTTP_400_BAD_REQUEST,
+                detail="Failed to update user"
+            )
+        return db_user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=e,
+        )
+    
+
+async def delete_user():
+    pass 
+    
+
+
