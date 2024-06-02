@@ -26,8 +26,13 @@ class UserRegister(BaseModel):
     birthdate: date
 
 class UserUpdate(BaseModel):
-    email: Optional[EmailStr]
-    password: Optional[str] 
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    name: Optional[str] = None
+    lastname: Optional[str]   = None
+    is_superuser: Optional[bool] = None
+    phone: Optional[str] = None
+    birthdate: Optional[date]  = None
 
 
 class UserUpdateMe(BaseModel):
