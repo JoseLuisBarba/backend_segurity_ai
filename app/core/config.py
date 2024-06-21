@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER: str = 'admin'
     FIRST_SUPERUSER_PASSWORD: str = 'mibarba'
 
+    OPENAI_KEY: str = ''
+
     # SMTP_TLS: bool = True
     # SMTP_SSL: bool = False
     # SMTP_PORT: int = 587
