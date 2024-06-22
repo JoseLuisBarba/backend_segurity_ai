@@ -1,16 +1,14 @@
 from datetime import timedelta 
 from typing import Annotated, Any, Optional  
-
-
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse 
 from fastapi.security import OAuth2PasswordRequestForm
-
 from sqlalchemy.sql import select, update, func
 
 
-from app.data.user import get_user_by_email, create, update_user
+from app.data.user import (
+    get_user_by_email, create, update_user, get_users
+)
 from app.api.deps import (
     CurrentUser, SessionDep, get_current_active_superuser
 )
@@ -21,7 +19,7 @@ from app.dto.utils import Message
 from app.dto.auth import NewPassword, Token
 from app.dto.user import UserPublic, UsersPublic, UserCreate, UserRegister, UserUpdate
 from app.model.orm import User
-from app.helpers.user import map_create_no_superuser
+from app.helpers.user import map_create_no_superuser, to_user_out
 
 
 
@@ -32,30 +30,25 @@ router = APIRouter()
     dependencies=[Depends(get_current_active_superuser)],
     response_model=UsersPublic,
 )
-async def sweb_read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
+async def sweb_read_users(
+        session: SessionDep, skip: int = 0, limit: int = 100
+    ) -> Optional[UsersPublic]:
     """
     Retrieve users.
     """
-
-    count_query = (
-        select(func.count()).select_from(User).limit(1)
-    )
-    response = await session.scalar(count_query)
-
-    user_count = int(response)
-    users_query = (
-        select(User).offset(skip).limit(limit)
-    )
-    users: list[User] = await session.scalars(users_query)
-
-    users_public: list[UserPublic] = [
-        UserPublic(
-            id= user_data.id
-        ) for user_data in users
-    ]
-
-    return UsersPublic(data=users_public, count=user_count)
-
+    try:
+        users_out: UsersPublic = await get_users(session=session, skip=skip, limit=limit)
+        if not users_out:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="could not get users.",
+            )
+        return users_out
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="could not get users.",
+        )    
 
 @router.post(
     "/create", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
@@ -121,12 +114,19 @@ async def sweb_register_user(
     
 @router.get("/{user_id}", response_model=UserPublic)
 async def sweb_read_user_by_id(
-       user_id: int ,session: SessionDep, current_user: CurrentUser
-    ) -> Any:
+       user_id: str, session: SessionDep, current_user: CurrentUser
+    ) -> Optional[UserPublic]:
     """Get a specific user by id
     """
     try:
         user: User = await session.get(User, user_id)
+
+        if not user:
+            raise HTTPException(
+                status_code= status.HTTP_400_BAD_REQUEST,
+                detail="The user could not be obtained",
+            )
+
         if user == current_user:
             return user
         if not current_user.is_superuser:
@@ -134,11 +134,11 @@ async def sweb_read_user_by_id(
                 status_code= status.HTTP_403_FORBIDDEN,
                 detail="The user doesn't have enough privileges",
             )
-        return user
+        return to_user_out(user_in=user)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=e,
+            detail='The user could not be obtained',
         )
     
 
@@ -146,7 +146,7 @@ async def sweb_read_user_by_id(
     "/{user_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=UserPublic
 )
-async def sweb_update_user(*, session: SessionDep, user_id: int, user_in: UserUpdate) -> Any:
+async def sweb_update_user(*, session: SessionDep, user_id: str, user_in: UserUpdate) -> Any:
     """update user
     """
     try:

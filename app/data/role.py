@@ -1,32 +1,19 @@
-from typing import Any, Optional
-from sqlalchemy.sql import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
-from app.core.config import settings
-from app.model.orm import User, Role
-from app.dto.user import UserCreate, UserUpdate
+from app.model.orm import Role
 from app.dto.role import RoleCreate, RoleOut, RolesOut
+from app.helpers.convertions import make_naive
+from app.helpers.roles import to_role_out
+
 
 from datetime import datetime, timezone
 from datetime import date
 from sqlalchemy.sql import select, update, func
+from typing import Any, Optional
+from sqlalchemy.sql import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 
-def make_naive(dt):
-    if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt
 
-def to_role_out(role_in: Role)->RoleOut:
-    return RoleOut(
-        id= role_in.id, 
-        name= role_in.name, 
-        description= role_in.description, 
-        is_active= role_in.is_active, 
-        createdAt= role_in.createdAt, 
-        updatedAt= role_in.updatedAt,
-        deletedAt= role_in.deletedAt
-    )
 
 
 async def get_roles(

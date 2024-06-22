@@ -1,39 +1,18 @@
-from typing import Optional
-from sqlalchemy.sql import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.exc import SQLAlchemyError
 from app.model.orm import Citizen
 from app.dto.citizen import CitizenCreate, CitizenOut, CitizensOut
+from app.helpers.convertions import make_naive
+from app.helpers.citizen import to_citizen_out
 
 from datetime import datetime, timezone
 from datetime import date
 from sqlalchemy.sql import select, update, func
+from typing import Optional
+from sqlalchemy.sql import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
 
 
-def make_naive(dt):
-    if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
-    return dt
 
-def to_citizen_out(citizen_in: Citizen)->CitizenOut:
-    citizen: CitizenOut = CitizenOut(
-        dni= citizen_in.dni,
-        firstname= citizen_in.firstname,
-        lastname= citizen_in.lastname,
-        fathername=citizen_in.fathername,
-        mothername= citizen_in.mothername,
-        birthdate= citizen_in.birthdate,
-        img= citizen_in.img,
-        address= citizen_in.address,
-        telephone= citizen_in.telephone,
-        cellphone= citizen_in.cellphone,
-        email= citizen_in.email,
-        is_active= citizen_in.is_active,
-        createdAt= citizen_in.createdAt,
-        updatedAt= citizen_in.updatedAt,
-        deletedAt= citizen_in.deletedAt
-    )
-    return citizen
 
 async def get_citizens(
         *, session: AsyncSession, skip: int = 0, limit: int = 100
