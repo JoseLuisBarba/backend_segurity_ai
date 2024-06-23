@@ -29,3 +29,4 @@ def to_user_out(user_in: User) -> UserPublic:
         updatedAt= user_in.updatedAt,
         deletedAt= user_in.deletedAt
     )
+

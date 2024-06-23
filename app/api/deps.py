@@ -73,3 +73,5 @@ async def get_current_active_superuser(current_user: CurrentUser) -> Optional[Us
             detail="The user doesn't have enough privileges"
         )
     return current_user 
+
+

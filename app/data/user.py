@@ -75,6 +75,19 @@ async def get_user_by_email(
     user : User = await session.scalar(query)
     return user
 
+async def get_user_by_id(
+        *, session: AsyncSession, id: str    
+    ) -> Optional[User]:
+    query = (
+        select(User).where(User.id == id).limit(1)
+    ) 
+    user: User = await session.scalar(query) 
+    return user
+
+async def validate_user_exists(
+        *, session: AsyncSession, id: str
+    ) -> bool:
+    return bool(await get_user_by_id(session=session, id=id))
 
 async def authenticate(
         *, session: AsyncSession, email: str, password: str
