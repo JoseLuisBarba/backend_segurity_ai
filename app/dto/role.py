@@ -36,3 +36,7 @@ class RoleResponse(BaseModel):
 class RolesResponse(BaseModel):
     roles: Optional[List[RoleOut]]
     detail: str 
+
+class RolesOut(BaseModel):
+    data: list[RoleOut]
+    count: int

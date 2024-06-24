@@ -14,8 +14,6 @@ class UserCreate(BaseModel):
     phone: str
     birthdate: date
     
-
-
 class UserRegister(BaseModel):
     id: str
     email: EmailStr
@@ -45,8 +43,21 @@ class UpdatePassword(BaseModel):
     current_password: str 
     new_password: str
 
+
 class UserPublic(BaseModel):
     id: str 
+    is_superuser: Optional[bool] = None
+    email: EmailStr
+    name: str
+    lastname: str
+    phone: str
+    birthdate: date
+    img: Optional[str] = None
+    is_active: Optional[bool] = None
+    createdAt: Optional[datetime] = None
+    updatedAt: Optional[datetime] = None
+    deletedAt: Optional[datetime] = None
+
 
 class UsersPublic(BaseModel):
     data: list[UserPublic]

@@ -38,6 +38,9 @@ class Role(Base):
     updatedAt = Column(DateTime, nullable=True)
     deletedAt = Column(DateTime, nullable=True)
 
+    class Config:
+        orm_mode = True
+
 
 # segurity ai
 class User(Base):
@@ -65,13 +68,19 @@ class Citizen(Base):
 
     __tablename__ = "citizen"
 
+    # identification data
     dni = Column(String(15), primary_key=True)
-    firstname = Column(String, nullable=False)
-    lastname = Column(String, index=True, nullable=False)
+    firstname = Column(String(50), nullable=False)
+    lastname = Column(String(50), index=True, nullable=False)
+    fathername = Column(String(100), index=True, nullable=False)
+    mothername = Column(String(100), index=True, nullable=False)
+
+    # contact data
     birthdate = Column(Date, nullable=False)
     img = Column(String(255), index=True, nullable=True)
     address = Column(String(120), nullable=False)
-    phone = Column(String(15), nullable=True, index=True)
+    telephone = Column(String(15), nullable=True, index=True)
+    cellphone = Column(String(15), nullable=True, index=True)
     email = Column(String(50),  unique=True, index=True, nullable=True)
 
     # auditoria
@@ -115,23 +124,32 @@ class IncidenceStatus(Base):
                       
 
 
-class Incidence(Base):
+class PoliceReport(Base):
 
     __tablename__ = "incidence"
 
     id = Column( Integer, primary_key=True, autoincrement="auto")
     name = Column(String(20), unique=True, index=True, nullable=False)
     description = Column(String(100), nullable=True)
-    longitude = Column(Float, nullable=True)
-    latitude = Column(Float, nullable=True) 
-    address = Column(String(120), nullable=True)
-    inc_date = Column(Date, nullable=False)
-    inc_time = Column(Time, nullable=False)
+
+
 
     type_id = Column(Integer, ForeignKey("incidence_type.id"), nullable= False)
     status_id = Column(Integer, ForeignKey("incidence_status.id"), nullable= False)
     user_id = Column(String(15), ForeignKey("user.id"), nullable= False)
     citizen_id = Column(String(15), ForeignKey("citizen.dni"), nullable= False)
+
+
+    #contact data
+
+    # Incident Description
+    # Location
+    longitude = Column(Float, nullable=True)
+    latitude = Column(Float, nullable=True) 
+    address = Column(String(120), nullable=True)
+    # Date and time
+    date_incident = Column(Date, nullable=False)
+    time_incident = Column(Time, nullable=False)
 
     # auditoria
     is_active = Column(Boolean, index=True, default=True)
@@ -143,6 +161,12 @@ class Incidence(Base):
     status = relationship("IncidenceStatus")
     user = relationship("User")
     citizen = relationship("Citizen")
+
+
+
+
+    
+
 
 
 
