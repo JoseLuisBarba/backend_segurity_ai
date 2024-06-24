@@ -22,24 +22,24 @@ router = APIRouter()
 @router.get(
     "/",
     dependencies=[Depends(get_current_user)],
-    response_model=IncidenceStatusOut,
+    response_model=ListStatusOut,
 )
 async def sweb_read_incidences_status(
         session: SessionDep, skip: int = 0, limit: int = 100
-    ) -> Optional[IncidenceStatusOut]:
+    ) -> Optional[ListStatusOut]:
     """
     Retrieve Incidence status.
     """
     try:
-        status_out: IncidenceStatusOut = await get_incidences_status(
+        list_status_out: ListStatusOut = await get_incidences_status(
             session=session, skip=skip, limit=limit
         )
-        if not status_out:
+        if not list_status_out:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="could not get incidence status.",
             )
-        return status_out
+        return list_status_out
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
