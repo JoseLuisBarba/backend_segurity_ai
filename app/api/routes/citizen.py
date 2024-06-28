@@ -55,7 +55,7 @@ async def sweb_register_citizen(*, session: SessionDep, citizen_create: CitizenC
     
 
 @router.get("/{citizen_id}", dependencies=[Depends(get_current_user)], response_model=CitizenOut)
-async def sweb_read_role_by_id(
+async def sweb_read_citizen_by_id(
        citizen_id: str ,session: SessionDep
     ) -> Optional[CitizenOut]:
     """Get a specific citizen_out by id

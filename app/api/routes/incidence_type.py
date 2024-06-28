@@ -7,7 +7,7 @@ from app.api.deps import (
 )
 from app.data.incidence_type import (
     get_incidences_type, create_incidence_type, get_incidence_type_by_name,
-    update_incidence_type, get_role_by_id
+    update_incidence_type, get_incidence_type_id, delete_incidence_type_by_id
 )
 from app.data.user import (
     validate_user_exists
@@ -16,6 +16,7 @@ from app.dto.incidence_type import (
     IncidenceTypeOut, IncidenceTypesOut, IncidenceTypeCreate, 
     IncidenceTypeUpdate
 )
+from app.dto.utils import Message
 
 router = APIRouter()
 
@@ -50,7 +51,7 @@ async def sweb_read_incidence_type_by_id(
     """Get a specific Incidence type by id
     """
     try:
-        type_out: IncidenceTypeOut = await get_role_by_id(session=session, type_id=type_id)
+        type_out: IncidenceTypeOut = await get_incidence_type_id(session=session, type_id=type_id)
         if not type_out:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -181,4 +182,32 @@ async def sweb_activate_incidence_type(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incident type could not be activated",
+        )
+    
+@router.delete(
+    "/delete/{type_id}", dependencies=[Depends(get_current_active_superuser)],
+    response_model=Message
+)
+async def sweb_delete_incidence_type(
+        *, session: SessionDep, type_id: int
+    ) -> Optional[Message]:
+
+    try:
+        current_type: IncidenceType = await session.get(IncidenceType, type_id)
+        if not current_type:
+            raise HTTPException(
+                status_code= status.HTTP_404_NOT_FOUND,
+                detail="IncidenceType with this id not exists."
+            )
+        message: Message = await delete_incidence_type_by_id(session=session, type_id= type_id)
+        if not message:
+            raise HTTPException(
+                status_code= status.HTTP_400_BAD_REQUEST,
+                detail="Failed to delete incidence type"
+            )
+        return message
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to delete incidence type",
         )

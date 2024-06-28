@@ -3,16 +3,14 @@ from app.dto.incidence_type import (
     IncidenceTypeOut, IncidenceTypesOut, IncidenceTypeCreate,
     IncidenceTypeUpdate
 )
+from app.dto.utils import Message
 from app.helpers.convertions import make_naive
 from app.helpers.incidence_type import (
     to_incidence_type_out
 )
-
-
-
 from sqlalchemy.sql import select, update, func
 from typing import Optional
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
@@ -55,7 +53,7 @@ async def get_incidence_type_by_name(
         return None 
     
 
-async def get_role_by_id(
+async def get_incidence_type_id(
         *, session: AsyncSession, type_id= int
     ) -> Optional[IncidenceTypeOut]:
     try:
@@ -126,3 +124,28 @@ async def update_incidence_type(
     except SQLAlchemyError as err:
         await session.rollback()
         return None
+    
+
+
+async def delete_incidence_type_by_id(
+        *, session: AsyncSession, type_id= int
+    ) -> Optional[Message]:
+    try:
+        query = (
+            select(IncidenceType).where(IncidenceType.id == type_id).limit(1)
+        )
+        incidence_type: IncidenceType = await session.scalar(query)
+        if not incidence_type:
+            return Message(
+                message= "type of incident not removed"
+            )
+        await session.delete(incidence_type)
+        await session.commit()
+        return Message(
+            message= "incident type removed"
+        )
+    except SQLAlchemyError as err:
+        await session.rollback()
+        return Message(
+            message="type of incident not removed"
+        )
