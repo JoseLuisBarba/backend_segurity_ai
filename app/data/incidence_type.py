@@ -147,5 +147,11 @@ async def delete_incidence_type_by_id(
     except SQLAlchemyError as err:
         await session.rollback()
         return Message(
-            message="type of incident not removed"
+            message="incident type not removed"
         )
+    
+
+async def validate_incidence_type_exists(
+        *, session: AsyncSession, id: int
+    ) -> bool:
+    return bool(await get_incidence_type_id(session=session, type_id=id))

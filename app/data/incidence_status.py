@@ -144,3 +144,8 @@ async def delete_incidence_status_by_id(
         return Message(
             message="incident status not removed"
         )
+    
+async def validate_incidence_status_exists(
+        *, session: AsyncSession, id: int
+    ) -> bool:
+    return bool(await get_incidence_status__by_id(session=session, id=id))
