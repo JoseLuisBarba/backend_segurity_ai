@@ -9,6 +9,7 @@ from app.dto.utils import Message
 from app.data.user import validate_user_exists
 from app.data.incidence_status import validate_incidence_status_exists
 from app.data.incidence_type import validate_incidence_type_exists
+from app.data.citizen import validate_citizen_exists
 from app.data.incidence import (
     create_incidence, get_incidences, get_incidence_by_id, delete_incidence_by_id
 ) 
@@ -96,24 +97,27 @@ async def web_service_create_incidence(
         if not (await validate_user_exists(session=session, id=incidence_create.user_id)):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="user id does not exist.",
+                detail=f"User ID {incidence_create.user_id} does not exist.",
+            )
+        if not (await validate_citizen_exists(session=session, id=incidence_create.citizen_id)):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Citizen ID {incidence_create.citizen_id} does not exist.",
             )
         if not (await validate_incidence_type_exists(session=session, id=incidence_create.type_id)):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="incidence type does not exist.",
+                detail="Incidence type does not exist.",
             )
         if not (await validate_incidence_status_exists(session=session, id=incidence_create.status_id)):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="incidence status does not exist.",
+                detail="Incidence status does not exist.",
             )
-
         incidence_out: IncidenceCreateOut = await create_incidence(
             session=session, 
             incidence_create=incidence_create
         )
-
         if not incidence_out:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

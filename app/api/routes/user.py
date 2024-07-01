@@ -191,14 +191,14 @@ async def web_service_update_user(
 @router.patch(
     "/remove/{user_id}", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
 )
-async def web_service_remove_user( *, session: SessionDep, user_id: int ) -> Optional[UserPublic]:
+async def web_service_remove_user( *, session: SessionDep, user_id: str ) -> Optional[UserPublic]:
     return await update_user_status(session=session, user_id=user_id, is_active=False)
 
 
 @router.patch(
     "/activate/{user_id}", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
 )
-async def web_service_activate_user( *, session: SessionDep, user_id: int ) -> Optional[UserPublic]:
+async def web_service_activate_user( *, session: SessionDep, user_id: str) -> Optional[UserPublic]:
     return await update_user_status(session=session, user_id=user_id, is_active=True)
 
 

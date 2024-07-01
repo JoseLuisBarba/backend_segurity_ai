@@ -1,14 +1,19 @@
 from typing import Optional  
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 from app.model.orm import Citizen
 from app.data.citizen import (
-    create_citizen, get_citizen_by_dni, get_citizens, delete_citizen_by_id
+    create_citizen, get_citizen_by_dni, get_citizens, delete_citizen_by_id,
+    update_citizen, update_citizen_status
 )
 from app.api.deps import (
     SessionDep, get_current_active_superuser, get_current_user
 )
-from app.dto.citizen import CitizenCreate, CitizenOut, CitizensOut
+from app.dto.citizen import (
+    CitizenCreate, CitizenOut, CitizensOut, CitizenUpdate
+)
 from app.dto.utils import Message
 
 router = APIRouter()
@@ -122,4 +127,61 @@ async def web_service_delete_citizen(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred while deleting the citizen.",
+        )
+    
+
+@router.patch(
+    "/remove/{citizen_id}", dependencies=[Depends(get_current_active_superuser)], response_model=CitizenOut
+)
+async def web_service_remove_citizen( *, session: SessionDep, citizen_id: str ) -> Optional[CitizenOut]:
+    return await update_citizen_status(session=session, citizen_id=citizen_id, is_active=False)
+
+
+@router.patch(
+    "/activate/{citizen_id}", dependencies=[Depends(get_current_active_superuser)], response_model=CitizenOut
+)
+async def web_service_activate_citizen( *, session: SessionDep, citizen_id: str ) -> Optional[CitizenOut]:
+    return await update_citizen_status(session=session, citizen_id=citizen_id, is_active=True)
+    
+
+@router.patch(
+    "/{citizen_id}", dependencies=[Depends(get_current_active_superuser)],
+    response_model=CitizenOut
+)
+async def web_service_update_citizen(
+        *, session: SessionDep, citizen_id: str, citizen_in: CitizenUpdate
+    ) -> Optional[CitizenOut]:
+
+    try:
+        current_citizen: Citizen = await session.get(Citizen, citizen_id)
+        if not current_citizen:
+            raise HTTPException(
+                status_code= status.HTTP_404_NOT_FOUND,
+                detail=f"No citizen found with ID: {citizen_id}"
+            )
+        current_citizen: Citizen = await update_citizen(
+            session=session, current_citizen=current_citizen, citizen_in=citizen_in
+        )
+        if not current_citizen:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update the citizen with ID: {citizen_id}."
+            )
+        return current_citizen
+    except HTTPException as e:
+        raise e
+    except (SQLAlchemyError, IntegrityError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error occurred: {str(e)}"
+        )
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
         )

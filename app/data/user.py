@@ -197,9 +197,9 @@ async def delete_user_by_id(
         )
 
 
-# Función auxiliar
+
 async def update_user_status(
-        session: SessionDep, user_id: int, is_active: bool
+        session: SessionDep, user_id: str, is_active: bool
     ) -> Optional[UserPublic]:
 
     try:
