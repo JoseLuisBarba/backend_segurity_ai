@@ -1,23 +1,20 @@
-from datetime import timedelta 
-from typing import Annotated, Any, Optional  
+from typing import Optional  
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse 
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.sql import select, update, func
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 
 from app.data.user import (
-    get_user_by_email, create, update_user, get_users
+    get_user_by_email, create,  get_users, delete_user_by_id, 
+    update_user_status, update_user
 )
 from app.api.deps import (
     CurrentUser, SessionDep, get_current_active_superuser
 )
-from app.core import segurity
-from app.core.config import settings
-from app.core.segurity import get_password_hash
 from app.dto.utils import Message
-from app.dto.auth import NewPassword, Token
-from app.dto.user import UserPublic, UsersPublic, UserCreate, UserRegister, UserUpdate
+from app.dto.user import (
+    UserPublic, UsersPublic, UserCreate, UserRegister, UserUpdate
+) 
 from app.model.orm import User
 from app.helpers.user import map_create_no_superuser, to_user_out
 
@@ -30,7 +27,7 @@ router = APIRouter()
     dependencies=[Depends(get_current_active_superuser)],
     response_model=UsersPublic,
 )
-async def sweb_read_users(
+async def web_service_read_users(
         session: SessionDep, skip: int = 0, limit: int = 100
     ) -> Optional[UsersPublic]:
     """
@@ -53,7 +50,7 @@ async def sweb_read_users(
 @router.post(
     "/create", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
 )
-async def sweb_create_user(*, session: SessionDep, user_in: UserCreate) -> Optional[User]:
+async def web_service_create_user(*, session: SessionDep, user_in: UserCreate) -> Optional[User]:
     user: User = await get_user_by_email(
         session= session, email= user_in.email
     )
@@ -74,14 +71,14 @@ async def sweb_create_user(*, session: SessionDep, user_in: UserCreate) -> Optio
     
 
 @router.get("/me", response_model= UserPublic)
-async def sweb_read_user_me(current_user: CurrentUser) -> UserPublic:
+async def web_service_read_user_me(current_user: CurrentUser) -> UserPublic:
     """ Get current user.
     """
     return current_user
 
 
 @router.post("/signup", response_model=UserPublic)
-async def sweb_register_user(
+async def web_service_register_user(
         session: SessionDep, user_in: UserRegister
     ) -> UserPublic:
     try:
@@ -113,7 +110,7 @@ async def sweb_register_user(
         )
     
 @router.get("/{user_id}", response_model=UserPublic)
-async def sweb_read_user_by_id(
+async def web_service_read_user_by_id(
        user_id: str, session: SessionDep, current_user: CurrentUser
     ) -> Optional[UserPublic]:
     """Get a specific user by id
@@ -123,8 +120,8 @@ async def sweb_read_user_by_id(
 
         if not user:
             raise HTTPException(
-                status_code= status.HTTP_400_BAD_REQUEST,
-                detail="The user could not be obtained",
+                status_code= status.HTTP_404_NOT_FOUND,
+                detail=f"No user found with ID: {user_id}"
             )
 
         if user == current_user:
@@ -146,41 +143,103 @@ async def sweb_read_user_by_id(
     "/{user_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=UserPublic
 )
-async def sweb_update_user(*, session: SessionDep, user_id: str, user_in: UserUpdate) -> Any:
-    """update user
-    """
+async def web_service_update_user(
+        *, session: SessionDep, user_id: str, user_in: UserUpdate
+    ) -> Optional[UserPublic]:
+
     try:
-        db_user: User = await session.get(User, user_id)
-        if not db_user:
+        current_user: User = await session.get(User, user_id)
+        if not current_user:
             raise HTTPException(
                 status_code= status.HTTP_404_NOT_FOUND,
-                detail="User with this email already exists"
+                detail=f"No user found with ID: {user_id}"
             )
-        
         if user_in.email:
             existing_user: User = await get_user_by_email(session=session, email=user_in.email)
             if existing_user and existing_user.id != user_id:
                 raise HTTPException(
                     status_code= status.HTTP_409_CONFLICT,
-                    detail="User with this email already exists"
-                )
-        db_user: User = await update_user(session=session, db_user=db_user, user_in=user_in)
-
-        if not db_user:
+                    detail=f"Another user with the email {user_in.email} already exists."
+                )   
+        current_user: User = await update_user(
+            session=session, current_user=current_user, user_in=user_in
+        )
+        if not current_user:
             raise HTTPException(
-                status_code= status.HTTP_400_BAD_REQUEST,
-                detail="Failed to update user"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update the user with ID: {user_id}."
             )
-        return db_user
+        return current_user
+    except HTTPException as e:
+        raise e
+    except (SQLAlchemyError, IntegrityError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error occurred: {str(e)}"
+        )
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Validation error: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=e,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
         )
     
+@router.patch(
+    "/remove/{user_id}", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
+)
+async def web_service_remove_user( *, session: SessionDep, user_id: int ) -> Optional[UserPublic]:
+    return await update_user_status(session=session, user_id=user_id, is_active=False)
 
-async def delete_user():
-    pass 
-    
+
+@router.patch(
+    "/activate/{user_id}", dependencies=[Depends(get_current_active_superuser)], response_model=UserPublic
+)
+async def web_service_activate_user( *, session: SessionDep, user_id: int ) -> Optional[UserPublic]:
+    return await update_user_status(session=session, user_id=user_id, is_active=True)
+
+
+@router.delete(
+    "/delete/{user_id}", dependencies=[Depends(get_current_active_superuser)],
+    response_model=Message
+)
+async def web_service_delete_user(
+        *, session: SessionDep, user_id: str
+    ) -> Optional[Message]:
+
+    try:
+        current_user: User = await session.get(User, user_id)
+        if not current_user:
+            raise HTTPException(
+                status_code= status.HTTP_404_NOT_FOUND,
+                detail=f"No user found with ID: {user_id}"
+            )
+        message: Message = await delete_user_by_id(session=session, id=user_id)
+        if not message:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete the user with ID: {user_id}."
+            )
+        return message
+    except HTTPException as e:
+        raise e
+    except (SQLAlchemyError, IntegrityError) as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error occurred: {str(e)}"
+        )
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Validation error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
 
 
