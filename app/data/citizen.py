@@ -2,10 +2,10 @@ from app.model.orm import Citizen
 from app.dto.citizen import CitizenCreate, CitizenOut, CitizensOut
 from app.helpers.convertions import make_naive
 from app.helpers.citizen import to_citizen_out
+from app.dto.utils import Message
 
 from datetime import datetime, timezone
-from datetime import date
-from sqlalchemy.sql import select, update, func
+from sqlalchemy.sql import select, func
 from typing import Optional
 from sqlalchemy.sql import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -88,3 +88,29 @@ async def create_citizen(
     except SQLAlchemyError as err:
         await session.rollback()
         return None
+    
+
+async def delete_citizen_by_id(
+        *, session: AsyncSession, id= str
+    ) -> Optional[Message]:
+    try:
+        query = (
+            select(Citizen).where(Citizen.dni == id).limit(1)
+        )
+        result = await session.execute(query)
+        citizen = result.scalars().one_or_none()
+
+        if citizen is None:
+            return Message(
+                message= f"The citizen with ID {id} was not removed"
+            )
+        await session.delete(citizen)
+        await session.commit()
+        return Message(
+            message= f"The citizen with ID {id} was removed"
+        )
+    except SQLAlchemyError as err:
+        await session.rollback()
+        return Message(
+            message="The citizen was not removed"
+        )
