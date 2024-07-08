@@ -1,10 +1,8 @@
 from datetime import timedelta 
 from typing import Annotated, Any  
-
-
-
+from pydantic import ValidationError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse 
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.db import async_session
@@ -28,26 +26,44 @@ async def login_access_token(
     ) -> Token:
     """OAuth2 compatible token login, get an access token for future requests
     """
-    user_db: User = await authenticate( 
-        session=session, email=form_data.username, password=form_data.password
-    )
-    if not user_db:
+    try:
+        user_db: User = await authenticate( 
+            session=session, email=form_data.username, password=form_data.password
+        )
+        if not user_db:
+            raise HTTPException(
+                status_code= status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect email or password"
+            )
+        elif not user_db.is_active:
+            raise HTTPException(
+                status_code= status.HTTP_401_UNAUTHORIZED,
+                detail= "Inactive user"
+            )
+        access_token_expire = timedelta(minutes= settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        return Token(
+            access_token= segurity.create_access_token(
+                subject=user_db.id, 
+                expires_delta=access_token_expire
+            )
+        )
+    except HTTPException as e:
+        raise e
+    except (SQLAlchemyError, IntegrityError) as e:
         raise HTTPException(
-            status_code= status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect email or password"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Database error occurred: {str(e)}"
         )
-    elif not user_db.is_active:
+    except ValidationError as e:
         raise HTTPException(
-            status_code= status.HTTP_400_BAD_REQUEST,
-            detail= "Inactive user"
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Validation error: {str(e)}"
         )
-    access_token_expire = timedelta(minutes= settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    return Token(
-        access_token= segurity.create_access_token(
-            subject=user_db.id, 
-            expires_delta=access_token_expire
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An unexpected error occurred: {str(e)}"
         )
-    )
 
 @router.post("/login/test-token", response_model= UserPublic)
 async def test_token(current_user: CurrentUser) -> Any:

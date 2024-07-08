@@ -17,6 +17,18 @@ class CitizenCreate(BaseModel):
     cellphone: Optional[str] = None
     email: Optional[EmailStr] = None
 
+class CitizenUpdate(BaseModel):
+    firstname: Optional[str] = None 
+    lastname: Optional[str] = None 
+    fathername: Optional[str] = None 
+    mothername: Optional[str] = None 
+    birthdate: Optional[date] = None 
+    img: Optional[str] = None
+    address: Optional[str] = None 
+    telephone: Optional[str] = None
+    cellphone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    is_active: Optional[bool] = None 
 
 
 class CitizenOut(BaseModel):

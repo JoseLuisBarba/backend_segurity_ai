@@ -41,15 +41,15 @@ class Settings(BaseSettings):
 
     OPENAI_KEY: str = ''
 
-    # SMTP_TLS: bool = True
-    # SMTP_SSL: bool = False
-    # SMTP_PORT: int = 587
-    # SMTP_HOST: str | None = None
-    # SMTP_USER: str | None = None
-    # SMTP_PASSWORD: str | None = None
+    SMTP_TLS: bool = True
+    SMTP_SSL: bool = False
+    SMTP_PORT: int = 587
+    SMTP_HOST: str | None = None
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
     # # TODO: update type to EmailStr when sqlmodel supports it
-    # EMAILS_FROM_EMAIL: str
-    # EMAILS_FROM_NAME: str
+    EMAILS_FROM_EMAIL: str  | None = None
+    EMAILS_FROM_NAME: str | None = None
 
     # class Config:
     #     case_sensitive = True
