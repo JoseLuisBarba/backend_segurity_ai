@@ -1,5 +1,7 @@
 from typing import Optional  
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import ValidationError
+
 from app.model.orm import IncidenceStatus
 from app.api.deps import (
     CurrentUser, SessionDep, get_current_active_superuser, get_current_user
@@ -24,7 +26,7 @@ router = APIRouter()
     dependencies=[Depends(get_current_user)],
     response_model=ListStatusOut,
 )
-async def sweb_read_incidences_status(
+async def web_service_read_incidences_status(
         session: SessionDep, skip: int = 0, limit: int = 100
     ) -> Optional[ListStatusOut]:
     """
@@ -47,7 +49,7 @@ async def sweb_read_incidences_status(
         )
 
 @router.get("/{status_id}", dependencies=[Depends(get_current_user)], response_model=IncidenceStatusOut)
-async def sweb_read_incidence_status_by_id(
+async def web_service_read_incidence_status_by_id(
        status_id: int ,session: SessionDep
     ) -> Optional[IncidenceStatusOut]:
     try:
@@ -67,7 +69,7 @@ async def sweb_read_incidence_status_by_id(
 @router.post(
     "/create", dependencies=[Depends(get_current_active_superuser)], response_model=IncidenceStatusOut
 )
-async def sweb_create_incidence_status( *, 
+async def web_service_create_incidence_status( *, 
         session: SessionDep, status_create: IncidenceStatusCreate
     ) -> Optional[IncidenceStatusOut]:
     try:
@@ -95,12 +97,12 @@ async def sweb_create_incidence_status( *,
     "/modify/{status_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=IncidenceStatusOut
 )
-async def sweb_update_incidence_status( 
-        session: SessionDep, type_id: int, status_in: IncidenceStatusUpdate
+async def web_service_update_incidence_status( 
+        session: SessionDep, status_id: int, status_in: IncidenceStatusUpdate
     ) -> Optional[IncidenceStatusOut]:
 
     try:
-        current_status: IncidenceStatus = await session.get(IncidenceStatus, type_id)
+        current_status: IncidenceStatus = await session.get(IncidenceStatus, status_id)
         if not current_status:
             raise HTTPException(
                 status_code= status.HTTP_404_NOT_FOUND,
@@ -115,17 +117,25 @@ async def sweb_update_incidence_status(
                 detail="Failed to update incidence status"
             )
         return new_status
+    
+    except HTTPException as e:
+        raise e
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Validation error: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to update incidence status",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while updating the status.",
         )
     
 @router.patch(
     "/remove/{status_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=IncidenceStatusOut
 )
-async def sweb_remove_incidence_status( 
+async def web_service_remove_incidence_status( 
         session: SessionDep, status_id: int 
     ) -> Optional[IncidenceStatusOut]:
 
@@ -158,7 +168,7 @@ async def sweb_remove_incidence_status(
     "/activate/{status_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=IncidenceStatusOut
 )
-async def sweb_activate_incidence_status(
+async def web_service_activate_incidence_status(
         session: SessionDep, status_id: int
     ) -> Optional[IncidenceStatusOut]:
 
@@ -191,7 +201,7 @@ async def sweb_activate_incidence_status(
     "/delete/{status_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=Message
 )
-async def sweb_delete_incidence_status(
+async def web_service_delete_incidence_status(
         session: SessionDep, status_id: int
     ) -> Optional[Message]:
     try:
