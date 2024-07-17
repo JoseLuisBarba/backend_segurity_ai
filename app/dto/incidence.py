@@ -84,3 +84,16 @@ class IncidenceCreateOut(BaseModel):
     deletedAt: Optional[datetime] = None
 
 
+class IncidenceUpdate(BaseModel):
+    description:    Optional[str] = None 
+    type_id:    Optional[int] = None 
+    status_id:  Optional[int] = None
+    user_id:    Optional[str] = None
+    citizen_id: Optional[str] = None
+    longitude:  Optional[float] = None 
+    latitude:   Optional[float] = None 
+    address:    Optional[str] = None  
+    date_incident:  Optional[date] = None 
+    time_incident:  Optional[time] = None 
+    inciden_details:    Optional[str] = None 
+    is_active: Optional[bool] = None

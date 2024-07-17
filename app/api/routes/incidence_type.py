@@ -94,8 +94,6 @@ async def sweb_create_incidence_type(*, session: SessionDep, type_create: Incide
 async def sweb_update_incidence_type(
         *, session: SessionDep, type_id: int, type_in: IncidenceTypeUpdate
     ) -> Optional[IncidenceTypeOut]:
-    """update incidence type
-    """
     try:
         current_type: IncidenceType = await session.get(IncidenceType, type_id)
         if not current_type:

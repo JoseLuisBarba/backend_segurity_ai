@@ -146,6 +146,7 @@ async def update_citizen(
         await session.rollback()
         return None
     except ValidationError as err:
+        await session.rollback()
         print(f"Validation error: {str(err)}")
         return None
     except Exception as err:

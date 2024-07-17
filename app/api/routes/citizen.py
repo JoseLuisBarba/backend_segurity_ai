@@ -145,7 +145,7 @@ async def web_service_activate_citizen( *, session: SessionDep, citizen_id: str 
     
 
 @router.patch(
-    "/{citizen_id}", dependencies=[Depends(get_current_active_superuser)],
+    "/update/{citizen_id}", dependencies=[Depends(get_current_active_superuser)],
     response_model=CitizenOut
 )
 async def web_service_update_citizen(

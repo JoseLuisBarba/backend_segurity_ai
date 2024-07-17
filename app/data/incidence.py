@@ -1,6 +1,7 @@
 from app.model.orm import Incidence
 from app.dto.incidence import (
-    IncidenceCreate, IncidenceOut, IncidencesOut, IncidenceCreateOut
+    IncidenceCreate, IncidenceOut, IncidencesOut, IncidenceCreateOut,
+    IncidenceUpdate
 )
 from app.dto.utils import Message
 from app.helpers.convertions import make_naive
@@ -14,6 +15,8 @@ from sqlalchemy.sql import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime, timezone
+from pydantic import ValidationError
+
 
 
 async def create_incidence(
@@ -130,3 +133,50 @@ async def delete_incidence_by_id(
         return Message(
             message="The incident was not removed"
         )
+    
+async def update_incidence(
+        *, session: AsyncSession, current_incidence: Incidence ,incidence_in: IncidenceUpdate
+    ) -> Optional[Incidence]: #check point
+    try:
+        update_data = incidence_in.model_dump(exclude_unset=True)
+        extra_data = {}
+        extra_data["updatedAt"] = make_naive(datetime.now(timezone.utc))
+        if "is_active" in update_data: #chek
+            if not bool(update_data["is_active"]):
+                update_data["is_active"] = False
+                extra_data["deletedAt"] = make_naive(datetime.now(timezone.utc))
+            else:
+                extra_data["deletedAt"] = None
+        for field, value in update_data.items():
+            if value is not None:
+                setattr(current_incidence, field, value)
+        for field, value in extra_data.items():
+            setattr(current_incidence, field, value)
+        session.add(current_incidence)
+        await session.commit()
+        await session.refresh(current_incidence)
+        return current_incidence
+    except SQLAlchemyError as err:
+        await session.rollback()
+        return None
+
+
+async def update_incidence_availability(
+        session: AsyncSession, incidence_id: int, is_active: bool
+    ) -> Optional[Incidence]:
+    try:
+        current_incidence: Optional[Incidence] = await session.get(Incidence, incidence_id)
+        if not current_incidence:
+            return None
+        incidence_in= IncidenceUpdate(is_active=is_active)
+        current_incidence: Optional[Incidence] = await update_incidence(
+            session=session, 
+            current_incidence=current_incidence, 
+            incidence_in=incidence_in
+        )
+        if not current_incidence:
+            return None
+        return current_incidence
+    except SQLAlchemyError as err:
+        await session.rollback()
+        return None
