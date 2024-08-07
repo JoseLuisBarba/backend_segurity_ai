@@ -12,6 +12,7 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
+from typing import Optional
 
 
 
@@ -44,12 +45,13 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     SMTP_SSL: bool = False
     SMTP_PORT: int = 587
-    SMTP_HOST: str | None = None
-    SMTP_USER: str | None = None
-    SMTP_PASSWORD: str | None = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
     # # TODO: update type to EmailStr when sqlmodel supports it
-    EMAILS_FROM_EMAIL: str  | None = None
-    EMAILS_FROM_NAME: str | None = None
+    EMAILS_FROM_EMAIL: Optional[str] = None
+    EMAILS_FROM_NAME: Optional[str] = None
+
 
     # class Config:
     #     case_sensitive = True
