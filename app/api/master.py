@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 from app.api.routes import (
     incidence, login, user, role, citizen, 
-    incidence_type, incidence_status, email
+    incidence_type, incidence_status, email,
+    api_peru_net, api_optimizer
 )
 
 api_router = APIRouter()
@@ -14,4 +15,5 @@ api_router.include_router(incidence.router, prefix='/incidence', tags=['incidenc
 api_router.include_router(incidence_status.router, prefix='/incidence-status', tags=['incidence-status'])
 api_router.include_router(incidence_type.router, prefix='/incidence-type', tags=['incidence-type'])
 api_router.include_router(email.router, prefix='/email', tags=['email'])
-
+api_router.include_router(api_peru_net.router, prefix='/api-peru-net', tags=['api-peru-net'])
+api_router.include_router(api_optimizer.router, prefix='/api-optimizer', tags=['api-optimizer'])

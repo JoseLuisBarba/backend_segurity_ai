@@ -18,6 +18,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://0.0.0.0:8000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
         "http://127.0.0.1:4200",
         "http://localhost:4200",
         "http://localhost:5173"
@@ -33,9 +35,9 @@ app.include_router(api_router, prefix = settings.API_V1_STR)
 async def startup():
     # create db tables
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-        
+        #await conn.run_sync(Base.metadata.drop_all)
+        #await conn.run_sync(Base.metadata.create_all)
+        pass
     async with async_session() as session:    
         await init_db(session=session)
 

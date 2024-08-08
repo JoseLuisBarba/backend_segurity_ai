@@ -54,3 +54,29 @@ class CitizenOut(BaseModel):
 class CitizensOut(BaseModel):
     data: list[CitizenOut]
     count: int
+
+
+class CitizenInfo(BaseModel):
+    nombre: Optional[str]
+    tipoDocumento: Optional[str]
+    numeroDocumento: Optional[str]
+    estado: Optional[str]
+    condicion: Optional[str]
+    direccion: Optional[str]
+    ubigeo: Optional[str]
+    viaTipo: Optional[str]
+    viaNombre: Optional[str]
+    zonaCodigo: Optional[str]
+    zonaTipo: Optional[str]
+    numero: Optional[str]
+    interior: Optional[str]
+    lote: Optional[str]
+    dpto: Optional[str]
+    manzana: Optional[str]
+    kilometro: Optional[str]
+    distrito: Optional[str]
+    provincia: Optional[str]
+    departamento: Optional[str]
+    nombres: Optional[str]
+    apellidoPaterno: Optional[str]
+    apellidoMaterno: Optional[str]
